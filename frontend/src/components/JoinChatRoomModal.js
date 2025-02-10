@@ -1,20 +1,28 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const JoinChatRoomModal = ({ userId, onClose, setChatRoom }) => {
+const JoinChatRoomModal = ({
+  userId,
+  onClose,
+  setChatRoom,
+  setChatRoomPassword,
+}) => {
   const [chatName, setChatName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!chatName.trim()) {
-      alert("Chat name is required.");
+      setErrorMessage("Chat name is required.");
       return;
     }
 
     setLoading(true);
+    //Reset Error Message before sending request
+    setErrorMessage("");
 
     try {
       const response = await axios.post(
@@ -22,27 +30,31 @@ const JoinChatRoomModal = ({ userId, onClose, setChatRoom }) => {
         {
           userId,
           chatRoomName: chatName,
-          // Optionales Passwort
+          // Optional Password
           password: password || null,
         }
       );
 
       const { chatRoomId, chatRoomName } = response.data;
-      console.log(response.data);
-      // Erfolgreich verbunden, `setChatRoom` aufrufen
+
+      // Set ChatRoom-State in App.js um zu navigieren
       setChatRoom({
         chatRoomId: chatRoomId,
         name: chatRoomName,
       });
+      //Set Password-State in App.js
+      setChatRoomPassword(password);
 
-      // Modal schließen
+      // Close Modal
       onClose();
     } catch (error) {
       console.error("Error joining chat room:", error);
+
+      // Show Error from Backend
       if (error.response && error.response.data) {
-        alert(error.response.data); // Zeigt spezifische Fehlermeldungen vom Backend an
+        setErrorMessage(error.response.data);
       } else {
-        alert("An error occurred while trying to join the chat.");
+        setErrorMessage("An error occurred while trying to join the chat.");
       }
     } finally {
       setLoading(false);
@@ -79,6 +91,11 @@ const JoinChatRoomModal = ({ userId, onClose, setChatRoom }) => {
               placeholder="Enter password"
             />
           </div>
+          {/* ErrorMessage */}
+          {errorMessage && (
+            <div className="text-red-500 text-sm mb-4">{errorMessage}</div>
+          )}
+          {/* Footer */}
           <div className="flex justify-end">
             <button
               type="button"
@@ -89,11 +106,11 @@ const JoinChatRoomModal = ({ userId, onClose, setChatRoom }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !chatName.trim()}
               className={`ml-2 px-4 py-2 rounded-lg transition ${
-                loading
-                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                  : "bg-blue-500 text-white hover:bg-blue-600"
+                loading || !chatName.trim()
+                  ? "bg-gray-400 text-black cursor-not-allowed"
+                  : "bg-blue-500 text-black hover:bg-blue-600"
               }`}
             >
               {loading ? "Joining..." : "Join"}

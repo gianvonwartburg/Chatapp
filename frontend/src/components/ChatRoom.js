@@ -1,18 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
-const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
+const ChatRoom = ({ chatRoom /*chatRoomId*/, user, password, onLeave }) => {
   const [connection, setConnection] = useState(null);
   const [messages, setMessages] = useState([]); //{sender: user1, receivedMessage: message, timestamp}
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    console.log(messages);
-  }, [messages]);
-
   const connectToChat = async () => {
-    console.log("Verbindung wird aufgebaut...");
     try {
       const hubConnection = new HubConnectionBuilder()
         .withUrl(`https://localhost:7100/hubs/chat`)
@@ -24,11 +19,6 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
       hubConnection.on(
         "ReceiveMessage",
         (sender, receivedMessage, timestamp) => {
-          console.log("Nachricht empfangen:", {
-            sender,
-            receivedMessage,
-            timestamp,
-          });
           setMessages((prevMessages) => [
             ...prevMessages,
             { sender, receivedMessage: receivedMessage, timestamp },
@@ -38,16 +28,14 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
 
       //Alte Nachrichten laden
       hubConnection.on("LoadMessages", (loadedMessages) => {
-        console.log("Nachrichten geladen:", loadedMessages);
         setMessages(loadedMessages);
       });
 
       await hubConnection.start();
-      console.log("Verbindung erfolgreich hergestellt.");
       await hubConnection.invoke(
         "JoinChatRoom",
         user.id,
-        chatRoomId,
+        chatRoom.chatRoomId,
         password || null
       );
       setConnection(hubConnection);
@@ -67,7 +55,6 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
       // Verbindung schließen, wenn die Komponente entladen wird
       if (connection) {
         connection.stop();
-        console.log("Verbindung geschlossen.");
       }
     };
   }, []);
@@ -77,7 +64,12 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
     if (!message.trim() || !connection) return;
 
     try {
-      await connection.invoke("SendMessage", user.id, chatRoomId, message);
+      await connection.invoke(
+        "SendMessage",
+        user.id,
+        chatRoom.chatRoomId,
+        message
+      );
       setMessage("");
     } catch (error) {
       console.error("Fehler beim Senden der Nachricht:", error);
@@ -96,7 +88,9 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between bg-blue-500 text-white px-4 py-2">
-        <h2 className="text-lg font-bold">{`ChatRoom ${chatRoomId}`}</h2>
+        {/* <h2 className="text-lg font-bold">{`ChatRoom ${chatRoomId}`}</h2> */}
+        <h2 className="text-lg font-bold">{chatRoom?.name ?? "ChatRoom"}</h2>
+
         <button
           onClick={handleLeave}
           className="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition"
@@ -130,7 +124,11 @@ const ChatRoom = ({ chatRoomId, user, password, onLeave }) => {
                   {msg.receivedMessage}
                 </div>
                 <span className="text-xs text-gray-500">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                  {/* Timestamp of message without seconds */}
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
             ))}

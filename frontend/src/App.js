@@ -1,36 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Auth from "./components/Auth";
 import ChatList from "./components/ChatList";
 import ChatRoom from "./components/ChatRoom";
 import "./App.css";
 
 const App = () => {
-  const [user, setUser] = useState(null); // Speichert { id, username }
-  const [chatRoom, setChatRoom] = useState(null); // Speichert {name, chatRoomId}
+  const [user, setUser] = useState(null); // { id, username }
+  const [chatRoom, setChatRoom] = useState(null); // {name, chatRoomId}
+  const [chatRoomPassword, setChatRoomPassword] = useState(null);
 
   const logout = () => {
     setUser(null);
     setChatRoom(null);
   };
 
-  useEffect(() => {
-    console.log(chatRoom);
-  }, [chatRoom]);
-
   return !user ? (
-    //Falls user nicht defined
+    //If no user defined
     <Auth onAuthSuccess={setUser} />
   ) : chatRoom ? (
-    //Falls Chatroom definiert
+    //if ChatRoom defined
     <ChatRoom
-      chatRoomId={chatRoom.chatRoomId}
+      chatRoom={chatRoom}
       user={user}
-      password={undefined} //TODO aus chatlist rausziehen
+      password={chatRoomPassword}
       onLeave={() => setChatRoom(null)}
     />
   ) : (
-    //Falls kein Chatroom definiert
-    <ChatList userId={user.id} setChatRoom={setChatRoom} onLogout={logout} />
+    //if chatRoom undefined
+    <ChatList
+      userId={user.id}
+      setChatRoom={setChatRoom}
+      onLogout={logout}
+      setChatRoomPassword={setChatRoomPassword}
+    />
   );
 };
 

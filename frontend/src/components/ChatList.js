@@ -4,12 +4,12 @@ import PasswordModal from "./PasswordModal";
 import axios from "axios";
 import JoinChatRoomModal from "./JoinChatRoomModal";
 
-const ChatList = ({ userId, setChatRoom, onLogout }) => {
+const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
   const [chatRooms, setChatRooms] = useState([]);
   const [isCreateChatRoomModalOpen, setIsCreateChatRoomModalOpen] =
     useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [selectedChatRoomName, setSelectedChatRoomName] = useState(null);
 
   const [isJoinChatRoomModalOpen, setIsJoinChatRoomModalOpen] = useState(false);
 
@@ -19,41 +19,35 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
       const response = await axios.get(
         `https://localhost:7100/api/chats/${userId}`
       );
-      console.log(response.data);
       setChatRooms(response.data);
     } catch (error) {
       console.error("Error fetching chat rooms:", error);
     }
   };
 
-  //Lade Chatrooms beim Initialisieren der Komponente
+  //Load Chatrooms on Component-init
   useEffect(() => {
     fetchChatRooms();
   }, [userId]);
 
   const handleCreateChat = async () => {
-    // Lade die Liste neu, nachdem ein Chat erstellt wurde
+    // Reload ChatRoom-list
     await fetchChatRooms();
   };
 
-  // const handleJoinChat = (chatRoom) => {
-  //   if (chatRoom.hasPassword) {
-  //     setSelectedChatRoom(chatRoom);
-  //     setIsPasswordModalOpen(true);
-  //   } else {
-  //     onSetChatRoom(chatRoom);
-  //   }
-  // };
+  const handleJoinChatRoom = (chatRoom) => {
+    if (!chatRoom) return;
 
-  //KAPUTT
-  const handlePasswordSubmit = async (password) => {
-    try {
-      console.log(selectedChatRoom);
-      // onSetChatRoom(selectedChatRoom);
-    } catch (error) {
-      alert("Ungültiges Passwort");
-    } finally {
-      setIsPasswordModalOpen(false);
+    if (chatRoom.hasPassword) {
+      //open PasswordModal
+      setSelectedChatRoomName(chatRoom.name);
+      setIsPasswordModalOpen(true);
+    } else {
+      setChatRoom({
+        chatRoomId: chatRoom.id,
+        name: chatRoom.name,
+        //Dont need hasPassword
+      });
     }
   };
 
@@ -96,16 +90,9 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
                 className="flex justify-between items-center bg-white p-4 rounded-lg shadow"
               >
                 <span>{chatRoom.name}</span>
+                {/* Set ChatRoom in App.js*/}
                 <button
-                  onClick={() => {
-                    console.log(chatRoom);
-                    setChatRoom({
-                      //Setze ChatRoom in App.js
-                      chatRoomId: chatRoom.id,
-                      name: chatRoom.name,
-                      //Dont need hasPassword
-                    });
-                  }}
+                  onClick={() => handleJoinChatRoom(chatRoom)}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
                   Join
@@ -121,6 +108,7 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
       {isJoinChatRoomModalOpen && (
         <JoinChatRoomModal
           userId={userId}
+          setChatRoomPassword={setChatRoomPassword}
           onClose={() => setIsJoinChatRoomModalOpen(false)}
           setChatRoom={setChatRoom}
         />
@@ -133,11 +121,16 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
           onCreate={handleCreateChat}
         />
       )}
+      {/* Password Modal */}
       {isPasswordModalOpen && (
+        // selectedchatRoom passen
         <PasswordModal
-          chatRoomName={selectedChatRoom?.name}
+          userId={userId}
+          setChatRoomPassword={setChatRoomPassword}
+          setChatRoom={setChatRoom} //ChatRoom State of App.js
+          selectedChatRoomName={selectedChatRoomName} //selected ChatRoom for API call
+          setSelectedChatRoomName={setSelectedChatRoomName}
           onClose={() => setIsPasswordModalOpen(false)}
-          onSubmit={handlePasswordSubmit}
         />
       )}
     </div>

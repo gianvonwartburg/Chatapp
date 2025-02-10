@@ -10,7 +10,7 @@ const Auth = ({ onAuthSuccess }) => {
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async () => {
-    // Eingaben prüfen
+    // Check Values
     if (!username.trim() || !password.trim()) {
       setError("Benutzername und Passwort dürfen nicht leer sein.");
       return;
@@ -30,21 +30,10 @@ const Auth = ({ onAuthSuccess }) => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Fehler bei der Anmeldung/Registrierung"
-        );
-      }
-
-      if (!data.userId || !data.username) {
-        throw new Error("Fehler: Ungültige Benutzerinformationen.");
-      }
-
-      //Setze State in Parent Component mit UserId & Username
+      //Set State in Parent Component with UserId & Username
       onAuthSuccess({ id: data.userId, username: data.username });
     } catch (err) {
-      //Definierter Error vom Try-block ausgeben
-      setError(err.message || "Ein unbekannter Fehler ist aufgetreten.");
+      setError("Login/Registration error");
     } finally {
       setLoading(false);
     }
@@ -54,7 +43,7 @@ const Auth = ({ onAuthSuccess }) => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-6 bg-white rounded shadow-lg">
         <h1 className="text-2xl font-bold text-center mb-4">
-          {isLogin ? "Login" : "Registrieren"}
+          {isLogin ? "Login" : "Register"}
         </h1>
         {error && <p className="text-red-500 text-center">{error}</p>}
         <input
@@ -73,20 +62,22 @@ const Auth = ({ onAuthSuccess }) => {
         />
         <button
           onClick={handleAuth}
-          disabled={!username || !password || loading}
+          disabled={!username.trim() || !password.trim() || loading}
           className={`w-full py-2 px-4 rounded transition ${
-            loading ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600 text-white"
+            loading || !username.trim() || !password.trim()
+              ? "bg-gray-400"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
         >
-          {loading ? "Lädt..." : isLogin ? "Login" : "Registrieren"}
+          {loading ? "Loading..." : isLogin ? "Login" : "Register"}
         </button>
         <p className="text-center mt-4">
-          {isLogin ? "Noch kein Account?" : "Schon registriert?"}{" "}
+          {isLogin ? "No Account?" : "Already registered?"}{" "}
           <span
             className="text-blue-500 cursor-pointer"
             onClick={() => setIsLogin(!isLogin)}
           >
-            {isLogin ? "Registrieren" : "Login"}
+            {isLogin ? "Register" : "Login"}
           </span>
         </p>
       </div>
