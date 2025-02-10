@@ -2,12 +2,16 @@ import React, { useState, useEffect } from "react";
 import ChatRoomModal from "./ChatRoomModal";
 import PasswordModal from "./PasswordModal";
 import axios from "axios";
+import JoinChatRoomModal from "./JoinChatRoomModal";
 
 const ChatList = ({ userId, setChatRoom, onLogout }) => {
   const [chatRooms, setChatRooms] = useState([]);
-  const [isChatRoomModalOpen, setIsChatRoomModalOpen] = useState(false);
+  const [isCreateChatRoomModalOpen, setIsCreateChatRoomModalOpen] =
+    useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+
+  const [isJoinChatRoomModalOpen, setIsJoinChatRoomModalOpen] = useState(false);
 
   // Fetch Chatrooms
   const fetchChatRooms = async () => {
@@ -60,10 +64,16 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
         <h2 className="text-lg font-bold">ChatRooms</h2>
         <div>
           <button
-            onClick={() => setIsChatRoomModalOpen(true)}
+            onClick={() => setIsCreateChatRoomModalOpen(true)}
             className="mr-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
           >
             Create Chat
+          </button>
+          <button
+            onClick={() => setIsJoinChatRoomModalOpen(true)}
+            className="mr-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+          >
+            Join Chat
           </button>
           <button
             onClick={onLogout}
@@ -107,10 +117,19 @@ const ChatList = ({ userId, setChatRoom, onLogout }) => {
       </div>
 
       {/* Modals */}
-      {isChatRoomModalOpen && (
+      {/* Join Chat Modal */}
+      {isJoinChatRoomModalOpen && (
+        <JoinChatRoomModal
+          userId={userId}
+          onClose={() => setIsJoinChatRoomModalOpen(false)}
+          setChatRoom={setChatRoom}
+        />
+      )}
+      {/* Create Chat Modal */}
+      {isCreateChatRoomModalOpen && (
         <ChatRoomModal
           userId={userId}
-          onClose={() => setIsChatRoomModalOpen(false)}
+          onClose={() => setIsCreateChatRoomModalOpen(false)}
           onCreate={handleCreateChat}
         />
       )}

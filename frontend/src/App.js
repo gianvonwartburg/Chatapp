@@ -13,6 +13,10 @@ const App = () => {
     setChatRoom(null);
   };
 
+  useEffect(() => {
+    console.log(chatRoom);
+  }, [chatRoom]);
+
   return !user ? (
     //Falls user nicht defined
     <Auth onAuthSuccess={setUser} />
