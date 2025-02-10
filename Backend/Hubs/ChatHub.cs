@@ -1,6 +1,10 @@
 ﻿using Backend.Data;
 using Backend.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Security.Cryptography;
+
 
 namespace Backend.Hubs
 {
@@ -14,63 +18,99 @@ namespace Backend.Hubs
         }
 
         /// <summary>
-        /// Save Message to Database and sends Message to all Users in given Chatroom
+        /// Sendet eine Nachricht und speichert sie in der Datenbank.
         /// </summary>
-        /// <param name="username">Username</param>
-        /// <param name="chatRoom">Given Chatroom</param>
-        /// <param name="message">User Message</param>
-        /// <returns>completed Task</returns>
-        public async Task SendMessage(string username, string chatRoom, string message)
+        public async Task SendMessage(int userId, int chatRoomId, string message)
         {
+            // Prüfen, ob User existiert
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                await Clients.Caller.SendAsync("ReceiveMessage", "ChatApp", "Ungültiger Benutzer.");
+                return;
+            }
+
+            // Prüfen, ob ChatRoom existiert
+            var chatRoom = await _dbContext.ChatRooms.FindAsync(chatRoomId);
+            if (chatRoom == null)
+            {
+                await Clients.Caller.SendAsync("ReceiveMessage", "ChatApp", "Ungültiger ChatRoom.");
+                return;
+            }
+
             // Nachricht speichern
             var chatMessage = new ChatMessage
             {
-                Username = username,
-                ChatRoom = chatRoom,
-                Message = message
+                UserId = userId,
+                ChatRoomId = chatRoomId,
+                Message = message,
+                Timestamp = DateTime.UtcNow
             };
+
             _dbContext.ChatMessages.Add(chatMessage);
             await _dbContext.SaveChangesAsync();
 
-            // Nachricht an alle User im ChatRoom senden
-            await Clients.Group(chatRoom).SendAsync("ReceiveMessage", username, message);
+            // Nachricht an alle in der Gruppe senden
+            await Clients.Group(chatRoomId.ToString()).SendAsync("ReceiveMessage", user.Username, message, chatMessage.Timestamp);
         }
 
         /// <summary>
-        /// Add User to specific ChatRoom 
-        /// loads all messages from database for this chatroom, and sends them to the joined user
-        /// Tells all users in the chatroom that a new user joined
+        /// Nutzer tritt einem bestimmten ChatRoom bei.
         /// </summary>
-        /// <param name="connection"></param>
-        /// <returns></returns>
-        public async Task JoinSpecificChat(UserConnection connection)
+        public async Task JoinChatRoom(int userId, int chatRoomId, string? password = null)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, connection.ChatRoom);
+            // Überprüfen, ob User existiert
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                await Clients.Caller.SendAsync("ReceiveMessage", "ChatApp", "Ungültiger Benutzer.");
+                return;
+            }
 
-            // Alte Nachrichten abrufen
-            var messages = _dbContext.ChatMessages
-                .Where(m => m.ChatRoom == connection.ChatRoom)
+            // Überprüfen, ob ChatRoom existiert
+            var chatRoom = await _dbContext.ChatRooms.FindAsync(chatRoomId);
+            if (chatRoom == null)
+            {
+                await Clients.Caller.SendAsync("ReceiveMessage", "ChatApp", "Ungültiger ChatRoom.");
+                return;
+            }
+
+            // Passwort prüfen, falls ChatRoom geschützt ist
+            if (!string.IsNullOrWhiteSpace(chatRoom.PasswordHash))
+            {
+                if (string.IsNullOrWhiteSpace(password) || chatRoom.PasswordHash != HashPassword(password))
+                {
+                    await Clients.Caller.SendAsync("ReceiveMessage", "ChatApp", "Ungültiges Passwort.");
+                    return;
+                }
+            }
+
+            // Verbindung zur Gruppe hinzufügen
+            await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomId.ToString());
+
+            // Nachrichtenverlauf laden
+            var messages = await _dbContext.ChatMessages
+                .Where(m => m.ChatRoomId == chatRoomId)
                 .OrderBy(m => m.Timestamp)
-                .ToList();
+                .Select(m => new
+                {
+                    sender = _dbContext.Users.FirstOrDefault(u => u.Id == m.UserId).Username,
+                    receivedMessage = m.Message,
+                    timestamp = m.Timestamp
+                })
+                .ToListAsync();
 
             await Clients.Caller.SendAsync("LoadMessages", messages);
 
-            await Clients.Group(connection.ChatRoom).SendAsync("ReceiveMessage", "admin", $"{connection.Username} has joined the Chatroom {connection.ChatRoom}");
+            // Benachrichtige andere Nutzer im ChatRoom
+            await Clients.OthersInGroup(chatRoomId.ToString()).SendAsync("ReceiveMessage", "ChatApp", $"{user.Username} hat den Chat betreten.", DateTime.UtcNow);
         }
 
-        //public async Task JoinChat(UserConnection connection)
-        //{
-        //    //TODO Validate Password
-        //    //validate(connection.Username, connection.password)            
-
-        //    await Clients.All.SendAsync("ReceiveMessage", "admin", $"{connection.Username} has joined the Chat");
-        //}
-
-        //public async Task JoinSpecificChat(UserConnection connection)
-        //{
-        //    //Add User to Specific Chatroom
-        //    await Groups.AddToGroupAsync(Context.ConnectionId, connection.ChatRoom);
-        //    await Clients.Group(connection.ChatRoom).SendAsync("ReceiveMessage", "admin", $"{connection.Username} has joined the Chatroom ${connection.ChatRoom}");
-        //}
+        private string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
+        }
     }
 }

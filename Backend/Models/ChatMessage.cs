@@ -3,8 +3,8 @@
     public class ChatMessage
     {
         public int Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string ChatRoom { get; set; } = string.Empty;
+        public int UserId { get; set; } // FK: Verweis auf User
+        public int ChatRoomId { get; set; } // FK: Verweis auf ChatRoom
         public string Message { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }

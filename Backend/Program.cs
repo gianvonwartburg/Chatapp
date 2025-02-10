@@ -39,14 +39,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+//useCors
+app.UseCors("ChatApp");
+
 app.UseAuthorization();
 
 app.MapControllers();
 
-//useCors
-app.UseCors("ChatApp");
 
 // Map the SignalR Hub --> Makes ChatHub reachable under localhost/chat
-app.MapHub<ChatHub>("/chat");
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();

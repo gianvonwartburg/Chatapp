@@ -3,12 +3,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Data
 {
-    //Kommunikation mit der Datenbank
+    //Handles communication with DB
     public class ChatAppDbContext : DbContext
     {
         public ChatAppDbContext(DbContextOptions<ChatAppDbContext> options) : base(options) { }
 
-        //Tabellen in der Datenbank
+        //Tables in DB
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<ChatRoom> ChatRooms { get; set; } = null!;
+        public DbSet<UserChatRoom> UserChatRoom { get; set; } = null!;
+
     }
 }
