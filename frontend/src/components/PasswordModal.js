@@ -66,7 +66,9 @@ const PasswordModal = ({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Enter password for ChatRoom</h2>
+        <h2 className="text-xl font-bold mb-4">
+          Enter password for {selectedChatRoomName}
+        </h2>
         <input
           type="password"
           value={password}
