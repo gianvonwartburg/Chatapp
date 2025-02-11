@@ -112,7 +112,7 @@ const ChatList = ({ user, setChatRoom, onLogout, setChatRoomPassword }) => {
                   </span>
                   {chatRoom.hasPassword && (
                     <span className="text-sm text-gray-500">
-                      🔒 Password Protected
+                      Password Protected
                     </span>
                   )}
                 </div>
