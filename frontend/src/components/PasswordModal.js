@@ -45,10 +45,9 @@ const PasswordModal = ({
         chatRoomId: chatRoomId,
         name: chatRoomName,
       });
+
       //Set Password-State in App.js
       setChatRoomPassword(password);
-
-      // Close Modal
       onClose();
     } catch (error) {
       console.error("Error joining chat room:", error);

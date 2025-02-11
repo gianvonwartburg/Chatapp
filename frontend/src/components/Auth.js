@@ -1,39 +1,45 @@
 import { useState } from "react";
+import axios from "axios";
 
 //Login and Registration
 const Auth = ({ onAuthSuccess }) => {
-  const [username, setUsername] = useState("");
+  const [givenUsername, setGivenUsername] = useState("");
   const [password, setPassword] = useState("");
   //Default Value log in
   const [isLogin, setIsLogin] = useState(true);
-  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async () => {
     // Check Values
-    if (!username.trim() || !password.trim()) {
-      setError("Benutzername und Passwort dürfen nicht leer sein.");
+    if (!givenUsername.trim() || !password.trim()) {
+      setErrorMessage("Benutzername und Passwort dürfen nicht leer sein.");
       return;
     }
 
-    setError("");
+    setErrorMessage("");
     setLoading(true);
 
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
 
     try {
-      const response = await fetch(`https://localhost:7100${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const response = await axios.post(`https://localhost:7100${endpoint}`, {
+        Username: givenUsername,
+        Password: password,
       });
 
-      const data = await response.json();
+      const { userId } = response?.data;
 
-      //Set State in Parent Component with UserId & Username
-      onAuthSuccess({ id: data.userId, username: data.username });
-    } catch (err) {
-      setError("Login/Registration error");
+      onAuthSuccess({ id: userId, username: givenUsername });
+    } catch (error) {
+      console.error("Error:", error);
+
+      // Show Error from Backend
+      if (error.response && error.response.data) {
+        setErrorMessage(error.response.data);
+      } else {
+        setErrorMessage("Login/Registration error");
+      }
     } finally {
       setLoading(false);
     }
@@ -45,12 +51,14 @@ const Auth = ({ onAuthSuccess }) => {
         <h1 className="text-2xl font-bold text-center mb-4">
           {isLogin ? "Login" : "Register"}
         </h1>
-        {error && <p className="text-red-500 text-center">{error}</p>}
+        {errorMessage && (
+          <p className="text-red-500 text-center">{errorMessage}</p>
+        )}
         <input
           type="text"
           placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={givenUsername}
+          onChange={(e) => setGivenUsername(e.target.value)}
           className="w-full p-2 mb-4 border rounded focus:outline-blue-500"
         />
         <input
@@ -62,9 +70,9 @@ const Auth = ({ onAuthSuccess }) => {
         />
         <button
           onClick={handleAuth}
-          disabled={!username.trim() || !password.trim() || loading}
+          disabled={!givenUsername.trim() || !password.trim() || loading}
           className={`w-full py-2 px-4 rounded transition ${
-            loading || !username.trim() || !password.trim()
+            loading || !givenUsername.trim() || !password.trim()
               ? "bg-gray-400"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}

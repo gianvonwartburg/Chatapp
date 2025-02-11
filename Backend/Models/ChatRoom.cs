@@ -1,5 +1,6 @@
 ﻿namespace Backend.Models
 {
+    //Model of ChatRoom Table in DB
     public class ChatRoom
     {
         public int Id { get; set; }

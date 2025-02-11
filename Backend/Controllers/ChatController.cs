@@ -19,24 +19,25 @@ namespace Backend.Controllers
             _dbContext = dbContext;
         }
 
-        // <summary>
-        /// Ermöglicht einem Benutzer, einem ChatRoom beizutreten.
+        /// <summary>
+        /// Lets a User Join a ChatRoom by ChatRoomName and creates Link between Chat and User
         /// </summary>
+        /// <param name="request">JoinRequest</param>
+        /// <returns></returns>
         [HttpPost("join")]
         public async Task<IActionResult> JoinChatRoom([FromBody] JoinChatRequestDto request)
         {
-            // Überprüfen, ob der Benutzer existiert
+            //Validate Input
             var user = await _dbContext.Users.FindAsync(request.UserId);
             if (user == null)
                 return NotFound("User not found.");
 
-            // ChatRoom anhand des Namens finden
             var chatRoom = await _dbContext.ChatRooms
                 .FirstOrDefaultAsync(cr => cr.Name == request.ChatRoomName);
             if (chatRoom == null)
                 return NotFound("ChatRoom not found.");
 
-            // Überprüfen, ob ein Passwort erforderlich ist
+            // Check for password
             if (!string.IsNullOrWhiteSpace(chatRoom.PasswordHash))
             {
                 if (string.IsNullOrWhiteSpace(request.Password) ||
@@ -46,13 +47,13 @@ namespace Backend.Controllers
                 }
             }
 
-            // Überprüfen, ob der Benutzer bereits mit dem ChatRoom verknüpft ist
+            //Check if user is already linked to ChatRoom
             var existingLink = await _dbContext.UserChatRoom
                 .FirstOrDefaultAsync(uc => uc.UserId == request.UserId && uc.ChatRoomId == chatRoom.Id);
 
             if (existingLink == null)
             {
-                // Verknüpfung erstellen, falls sie nicht existiert
+                // Create Link
                 var userChatRoom = new UserChatRoom
                 {
                     UserId = request.UserId,
@@ -62,7 +63,7 @@ namespace Backend.Controllers
                 await _dbContext.SaveChangesAsync();
             }            
 
-            // Erfolgreiche Rückgabe
+            // Return ChatRoomId & Name
             return Ok(new
             {
                 ChatRoomId = chatRoom.Id,
@@ -70,20 +71,25 @@ namespace Backend.Controllers
             });
         }
 
-
+        /// <summary>
+        /// Gets Chats of a User 
+        /// </summary>
+        /// <param name="userId">Id of User</param>
+        /// <returns>List of chats containing ChatRoomId, ChatRoomName, flag if chat has password</returns>
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserChats(int userId)
         {
+            //Validate input
             var user = await _dbContext.Users.FindAsync(userId);
             if (user == null)
                 return NotFound("User not found");
-
+           
             var chatRooms = await _dbContext.UserChatRoom
                 .Where(uc => uc.UserId == userId)
                 .Select(uc => new
                 {
-                    uc.ChatRoom.Id,
-                    uc.ChatRoom.Name,
+                    uc.ChatRoom.Id, //Id of ChatRoom --> NavigationProperty is used here
+                    uc.ChatRoom.Name, //Id of ChatRoom --> NavigationProperty is used here
                     HasPassword = !string.IsNullOrEmpty(uc.ChatRoom.PasswordHash)
                 })
                 .ToListAsync();
@@ -91,42 +97,61 @@ namespace Backend.Controllers
             return Ok(chatRooms);
         }        
 
+        /// <summary>
+        /// Create a Chat
+        /// </summary>
+        /// <param name="chatRoomDto">ChatRoom Dto</param>
+        /// <param name="userId">Id of User</param>
+        /// <returns>completed Task with created ChatRoomId</returns>
         [HttpPost("create")]
-        public async Task<IActionResult> CreateChat([FromBody] ChatRoom chatRoom, [FromQuery] int userId)
+        public async Task<IActionResult> CreateChat([FromBody] ChatRoomDto chatRoomDto, [FromQuery] int userId)
         {            
-            if (string.IsNullOrWhiteSpace(chatRoom.Name))
+            //Validate input
+            if (string.IsNullOrWhiteSpace(chatRoomDto.Name))
                 return BadRequest("ChatRoom Name is required.");
 
-            //Check if user exists
             var user = await _dbContext.Users.FindAsync(userId);
             if (user == null)
                 return NotFound("User not found.");
 
-            // Passwort hashen (falls angegeben)
-            if (!string.IsNullOrWhiteSpace(chatRoom.PasswordHash))
+            var existingChatRoom = await _dbContext.ChatRooms.FirstOrDefaultAsync(cr => cr.Name == chatRoomDto.Name);
+            if (existingChatRoom != null)
+                return BadRequest("A Chatroom with this name already exists.");
+
+            // Hash Password
+            if (!string.IsNullOrWhiteSpace(chatRoomDto.Password))
             {
-                chatRoom.PasswordHash = HashPassword(chatRoom.PasswordHash);
+                chatRoomDto.Password = HashPassword(chatRoomDto.Password);
             }
 
-            //Chatroom speichern
-            _dbContext.ChatRooms.Add(chatRoom);
-            await _dbContext.SaveChangesAsync();
+            //Create DB Model
+            var chatRoomModel = new ChatRoom()
+            {
+                PasswordHash = chatRoomDto.Password,
+                Name = chatRoomDto.Name,
+            };
 
-            // Den Ersteller direkt mit dem neuen Chat verknüpfen
+            //Save Chatroom
+            _dbContext.ChatRooms.Add(chatRoomModel);
+            await _dbContext.SaveChangesAsync(); //Id of chatroom gets set 
+
+            //Create Link between new Chat and Creator
             var userChatRoom = new UserChatRoom
             {
                 UserId = userId,
-                ChatRoomId = chatRoom.Id
+                ChatRoomId = chatRoomModel.Id
             };
             _dbContext.Add(userChatRoom);
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new { message = "ChatRoom created", chatRoomId = chatRoom.Id });
+            return Ok(new {chatRoomId = chatRoomModel.Id });
         }
 
         /// <summary>
-        /// Hashes a password using SHA256.
+        /// Hashes a password using SHA256
         /// </summary>
+        /// <param name="password">password as string</param>
+        /// <returns>Hashed password</returns>
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
-const ChatRoom = ({ chatRoom /*chatRoomId*/, user, password, onLeave }) => {
+const ChatRoom = ({ chatRoom, user, password, onLeave }) => {
   const [connection, setConnection] = useState(null);
   const [messages, setMessages] = useState([]); //{sender: user1, receivedMessage: message, timestamp}
   const [message, setMessage] = useState("");

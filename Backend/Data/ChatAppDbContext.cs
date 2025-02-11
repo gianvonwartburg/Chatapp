@@ -13,6 +13,5 @@ namespace Backend.Data
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<ChatRoom> ChatRooms { get; set; } = null!;
         public DbSet<UserChatRoom> UserChatRoom { get; set; } = null!;
-
     }
 }

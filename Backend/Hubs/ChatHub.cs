@@ -18,11 +18,14 @@ namespace Backend.Hubs
         }
 
         /// <summary>
-        /// Sendet eine Nachricht und speichert sie in der Datenbank.
+        /// Sends a Message in a ChatRoom and saves it to DB
         /// </summary>
+        /// <param name="userId">id of user</param>
+        /// <param name="chatRoomId">id of chatroom</param>
+        /// <param name="message">message</param>
         public async Task SendMessage(int userId, int chatRoomId, string message)
         {
-            // Prüfen, ob User existiert
+            // validate input
             var user = await _dbContext.Users.FindAsync(userId);
             if (user == null)
             {
@@ -30,7 +33,6 @@ namespace Backend.Hubs
                 return;
             }
 
-            // Prüfen, ob ChatRoom existiert
             var chatRoom = await _dbContext.ChatRooms.FindAsync(chatRoomId);
             if (chatRoom == null)
             {
@@ -38,7 +40,7 @@ namespace Backend.Hubs
                 return;
             }
 
-            // Nachricht speichern
+            // Save Message
             var chatMessage = new ChatMessage
             {
                 UserId = userId,
@@ -50,16 +52,19 @@ namespace Backend.Hubs
             _dbContext.ChatMessages.Add(chatMessage);
             await _dbContext.SaveChangesAsync();
 
-            // Nachricht an alle in der Gruppe senden
+            //Send Message to all in Group
             await Clients.Group(chatRoomId.ToString()).SendAsync("ReceiveMessage", user.Username, message, chatMessage.Timestamp);
         }
 
         /// <summary>
-        /// Nutzer tritt einem bestimmten ChatRoom bei.
+        /// Ûser Joins a specific ChatRoom
         /// </summary>
+        /// <param name="userId">id of user</param>
+        /// <param name="chatRoomId">id of chatroom</param>
+        /// <param name="password">password of chatroom</param>
         public async Task JoinChatRoom(int userId, int chatRoomId, string? password = null)
         {
-            // Überprüfen, ob User existiert
+            // Validate input
             var user = await _dbContext.Users.FindAsync(userId);
             if (user == null)
             {
@@ -67,7 +72,6 @@ namespace Backend.Hubs
                 return;
             }
 
-            // Überprüfen, ob ChatRoom existiert
             var chatRoom = await _dbContext.ChatRooms.FindAsync(chatRoomId);
             if (chatRoom == null)
             {
@@ -75,7 +79,7 @@ namespace Backend.Hubs
                 return;
             }
 
-            // Passwort prüfen, falls ChatRoom geschützt ist
+            // Check Password
             if (!string.IsNullOrWhiteSpace(chatRoom.PasswordHash))
             {
                 if (string.IsNullOrWhiteSpace(password) || chatRoom.PasswordHash != HashPassword(password))
@@ -85,16 +89,16 @@ namespace Backend.Hubs
                 }
             }
 
-            // Verbindung zur Gruppe hinzufügen
+            // Add Connection to group
             await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomId.ToString());
 
-            // Nachrichtenverlauf laden
+            // Load MessageHistory
             var messages = await _dbContext.ChatMessages
-                .Where(m => m.ChatRoomId == chatRoomId)
-                .OrderBy(m => m.Timestamp)
+                .Where(m => m.ChatRoomId == chatRoomId) //Filter by ChatRoomId
+                .OrderBy(m => m.Timestamp) //Order oldest to newest
                 .Select(m => new
                 {
-                    sender = _dbContext.Users.FirstOrDefault(u => u.Id == m.UserId).Username,
+                    sender = _dbContext.Users.FirstOrDefault(u => u.Id == m.UserId).Username,//Sender Username
                     receivedMessage = m.Message,
                     timestamp = m.Timestamp
                 })
@@ -102,10 +106,15 @@ namespace Backend.Hubs
 
             await Clients.Caller.SendAsync("LoadMessages", messages);
 
-            // Benachrichtige andere Nutzer im ChatRoom
+            // Notification for other Users in ChatRoom
             await Clients.OthersInGroup(chatRoomId.ToString()).SendAsync("ReceiveMessage", "ChatApp", $"{user.Username} hat den Chat betreten.", DateTime.UtcNow);
         }
 
+        /// <summary>
+        /// Hashes a password using SHA256
+        /// </summary>
+        /// <param name="password">password as string</param>
+        /// <returns>Hashed password</returns>
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();

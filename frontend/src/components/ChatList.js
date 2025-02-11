@@ -4,7 +4,7 @@ import PasswordModal from "./PasswordModal";
 import axios from "axios";
 import JoinChatRoomModal from "./JoinChatRoomModal";
 
-const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
+const ChatList = ({ user, setChatRoom, onLogout, setChatRoomPassword }) => {
   const [chatRooms, setChatRooms] = useState([]);
   const [isCreateChatRoomModalOpen, setIsCreateChatRoomModalOpen] =
     useState(false);
@@ -17,7 +17,7 @@ const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
   const fetchChatRooms = async () => {
     try {
       const response = await axios.get(
-        `https://localhost:7100/api/chats/${userId}`
+        `https://localhost:7100/api/chats/${user.id}`
       );
       setChatRooms(response.data);
     } catch (error) {
@@ -28,7 +28,7 @@ const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
   //Load Chatrooms on Component-init
   useEffect(() => {
     fetchChatRooms();
-  }, [userId]);
+  }, [user.id]);
 
   const handleCreateChat = async () => {
     // Reload ChatRoom-list
@@ -103,11 +103,18 @@ const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
         )}
       </div>
 
+      {/* Footer */}
+      <div className="bg-gray-200 text-center p-4">
+        <p className="text-gray-700">
+          Logged in as <strong>{user.username}</strong>
+        </p>
+      </div>
+
       {/* Modals */}
       {/* Join Chat Modal */}
       {isJoinChatRoomModalOpen && (
         <JoinChatRoomModal
-          userId={userId}
+          userId={user.id}
           setChatRoomPassword={setChatRoomPassword}
           onClose={() => setIsJoinChatRoomModalOpen(false)}
           setChatRoom={setChatRoom}
@@ -116,7 +123,7 @@ const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
       {/* Create Chat Modal */}
       {isCreateChatRoomModalOpen && (
         <ChatRoomModal
-          userId={userId}
+          userId={user.id}
           onClose={() => setIsCreateChatRoomModalOpen(false)}
           onCreate={handleCreateChat}
         />
@@ -125,7 +132,7 @@ const ChatList = ({ userId, setChatRoom, onLogout, setChatRoomPassword }) => {
       {isPasswordModalOpen && (
         // selectedchatRoom passen
         <PasswordModal
-          userId={userId}
+          userId={user.id}
           setChatRoomPassword={setChatRoomPassword}
           setChatRoom={setChatRoom} //ChatRoom State of App.js
           selectedChatRoomName={selectedChatRoomName} //selected ChatRoom for API call

@@ -28,7 +28,7 @@ const App = () => {
   ) : (
     //if chatRoom undefined
     <ChatList
-      userId={user.id}
+      user={user}
       setChatRoom={setChatRoom}
       onLogout={logout}
       setChatRoomPassword={setChatRoomPassword}

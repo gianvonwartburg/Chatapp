@@ -1,5 +1,6 @@
 ﻿namespace Backend.Models
 {
+    //Model of User Table in DB
     public class User
     {
         public int Id { get; set; }

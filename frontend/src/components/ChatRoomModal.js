@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const ChatRoomModal = ({ onClose, onCreate, userId }) => {
   const [chatRoomName, setChatRoomName] = useState("");
@@ -12,26 +13,25 @@ const ChatRoomModal = ({ onClose, onCreate, userId }) => {
     }
 
     try {
-      const response = await fetch(
+      await axios.post(
         `https://localhost:7100/api/chats/create?userId=${userId}`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: chatRoomName,
-            passwordHash: chatRoomPassword,
-          }),
+          name: chatRoomName,
+          password: chatRoomPassword,
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Fehler beim Erstellen des Chatrooms.");
-      }
-
       onCreate(); // Reload chatlist callback
       onClose(); //close Modal
-    } catch (err) {
-      setErrorMessage(err.message || "Etwas ist schiefgegangen.");
+    } catch (error) {
+      console.error("Error:", error);
+
+      // Show Error from Backend
+      if (error.response && error.response.data) {
+        setErrorMessage(error.response.data);
+      } else {
+        setErrorMessage("An error occurred while trying to join the chat.");
+      }
     }
   };
 
@@ -39,9 +39,6 @@ const ChatRoomModal = ({ onClose, onCreate, userId }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">Create new ChatRoom</h2>
-
-        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-
         <input
           type="text"
           placeholder="Chatroom Name"

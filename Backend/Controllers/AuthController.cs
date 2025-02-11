@@ -20,14 +20,18 @@ namespace Backend.Controllers
             _dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Register User
+        /// </summary>
+        /// <param name="requestDto">Request Dto with username and password</param>
+        /// <returns>Completed Task with username and userId</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserAuthDto requestDto)
         {
-            // Check if username and password are valid
+            //Validate Input
             if (string.IsNullOrWhiteSpace(requestDto.Username) || string.IsNullOrWhiteSpace(requestDto.Password))
                 return BadRequest("Username and password are required.");
 
-            // Check if username already exists
             if (await _dbContext.Users.AnyAsync(u => u.Username == requestDto.Username))
                 return BadRequest("Username already exists");
 
@@ -45,10 +49,15 @@ namespace Backend.Controllers
             return Ok(new { username = user.Username, userId = user.Id });
         }
 
+        /// <summary>
+        /// Login User
+        /// </summary>
+        /// <param name="requestDto">Request Dto with username and password</param>
+        /// <returns>Completed Task with username and userId</returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserAuthDto requestDto)
         {
-            //Check if username and passwort are valid
+            //Validate Input
             if (string.IsNullOrWhiteSpace(requestDto.Username) || string.IsNullOrWhiteSpace(requestDto.Password))
                 return BadRequest("Username and password are required.");
 
@@ -61,11 +70,16 @@ namespace Backend.Controllers
             return Ok(new { username = dbUser.Username, userId = dbUser.Id });
         }
 
+        /// <summary>
+        /// Hashes a password using SHA256
+        /// </summary>
+        /// <param name="password">password as string</param>
+        /// <returns>Hashed password</returns>
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
         }
     }
 }
