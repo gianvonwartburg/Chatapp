@@ -51,6 +51,23 @@ const ChatList = ({ user, setChatRoom, onLogout, setChatRoomPassword }) => {
     }
   };
 
+  const handleLeaveChatRoom = async (userId, chatRoomId) => {
+    if (!userId || !chatRoomId) return;
+
+    try {
+      await axios.delete("https://localhost:7100/api/chats/leave", {
+        params: {
+          userId: userId,
+          chatRoomId: chatRoomId,
+        },
+      });
+      //ChatListe neuladen
+      await fetchChatRooms();
+    } catch (error) {
+      console.error("error: ", error);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
@@ -89,14 +106,30 @@ const ChatList = ({ user, setChatRoom, onLogout, setChatRoomPassword }) => {
                 key={chatRoom.id}
                 className="flex justify-between items-center bg-white p-4 rounded-lg shadow"
               >
-                <span>{chatRoom.name}</span>
-                {/* Set ChatRoom in App.js*/}
-                <button
-                  onClick={() => handleJoinChatRoom(chatRoom)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Join
-                </button>
+                <div className="flex flex-col">
+                  <span className="text-lg font-medium text-gray-800">
+                    {chatRoom.name}
+                  </span>
+                  {chatRoom.hasPassword && (
+                    <span className="text-sm text-gray-500">
+                      🔒 Password Protected
+                    </span>
+                  )}
+                </div>
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleLeaveChatRoom(user.id, chatRoom.id)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                  >
+                    Leave
+                  </button>
+                  <button
+                    onClick={() => handleJoinChatRoom(chatRoom)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    Join
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

@@ -148,6 +148,31 @@ namespace Backend.Controllers
         }
 
         /// <summary>
+        /// Removes link between User and ChatRoom
+        /// </summary>
+        /// <param name="userId">Id of the User</param>
+        /// <param name="chatRoomId">Id of the ChatRoom</param>
+        /// <returns>Completed Task</returns>
+        [HttpDelete("leave")]
+        public async Task<IActionResult> LeaveChatRoom([FromQuery] int userId, [FromQuery] int chatRoomId)
+        {
+            // Validate input
+            var userChatRoom = await _dbContext.UserChatRoom
+                .FirstOrDefaultAsync(uc => uc.UserId == userId && uc.ChatRoomId == chatRoomId);
+
+            if (userChatRoom == null)
+                return NotFound("The user is not a member of this ChatRoom.");
+
+            // Remove the link
+            _dbContext.UserChatRoom.Remove(userChatRoom);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
+
+        /// <summary>
         /// Hashes a password using SHA256
         /// </summary>
         /// <param name="password">password as string</param>
